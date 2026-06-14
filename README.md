@@ -1,6 +1,29 @@
-# claude-markitdown
+<p align="center">
+  <img src="https://em-content.zobj.net/source/apple/391/page-facing-up_1f4c4.png" width="120" />
+</p>
 
-A Claude Code plugin that converts binary documents (DOCX, PDF, PPTX, XLSX, images, audio) into markdown and injects the content into Claude's context on demand.
+<h1 align="center">claude-markitdown</h1>
+
+<p align="center">
+  <strong>parse binary docs into context with /parse</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ayastaga/claude-markitdown/stargazers"><img src="https://img.shields.io/github/stars/ayastaga/claude-markitdown?style=flat&color=yellow" alt="Stars"></a>
+  <a href="https://github.com/ayastaga/claude-markitdown/commits/main"><img src="https://img.shields.io/github/last-commit/ayastaga/claude-markitdown?style=flat" alt="Last Commit"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ayastaga/claude-markitdown?style=flat" alt="License"></a>
+</p>
+
+<p align="center">
+  <a href="#usage">Usage</a> •
+  <a href="#install">Install</a> •
+  <a href="#supported-formats">Formats</a> •
+  <a href="#how-it-works">How It Works</a>
+</p>
+
+---
+
+A [Claude Code](https://claude.ai/code) plugin that converts binary documents (DOCX, PDF, PPTX, XLSX, images, audio) into markdown and injects the content into Claude's context on demand.
 
 Claude Code's built-in `@` file referencing handles text files natively. This plugin fills the gap for binary formats that `@` cannot read.
 
@@ -40,38 +63,28 @@ use template.docx as reference format
 
 No `/parse` trigger → no conversion. Claude processes the message as-is.
 
-## Supported formats
+## Supported Formats
 
-| Category  | Extensions                                           |
-| --------- | ---------------------------------------------------- |
+| Category  | Extensions                                            |
+| --------- | ----------------------------------------------------- |
 | Documents | `.docx` `.pdf` `.pptx` `.ppt` `.xlsx` `.xls` `.epub` |
-| Archives  | `.zip`                                               |
-| Images    | `.jpg` `.jpeg` `.png` `.gif` `.bmp` `.tiff`          |
-| Audio     | `.wav` `.mp3` `.m4a`                                 |
+| Archives  | `.zip`                                                |
+| Images    | `.jpg` `.jpeg` `.png` `.gif` `.bmp` `.tiff`           |
+| Audio     | `.wav` `.mp3` `.m4a`                                  |
 
 Text files (`.txt`, `.md`, `.py`, `.csv`, etc.) are intentionally excluded — Claude Code's `@` already handles those natively.
 
-## Installation
+## Install
 
-### Prerequisites
-
-- [Claude Code](https://claude.ai/code) installed
-- Node.js (any modern version)
-- Python 3.10+ with pip
-
-### One-liner
+One line.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ayastaga/claude-markitdown/main/install.sh | bash
 ```
 
-The installer will:
+Needs Node.js, Python 3 with pip, and the `claude` CLI. Restart Claude Code after installing.
 
-1. Check for Node.js (required)
-2. Install `markitdown` via pip if not found
-3. Patch `~/.claude/settings.json` to register and enable the plugin
-
-Restart Claude Code after installing.
+**Trigger:** type `/parse <path>` in any message.
 
 ### Manual installation
 
@@ -81,29 +94,25 @@ Restart Claude Code after installing.
 pip install 'markitdown[all]'
 ```
 
-**2. Add to `~/.claude/settings.json`:**
+**2. Register the marketplace:**
 
-```json
-{
-  "extraKnownMarketplaces": {
-    "claude-markitdown": {
-      "source": {
-        "source": "github",
-        "repo": "ayastaga/claude-markitdown"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "claude-markitdown@claude-markitdown": true
-  }
-}
+```bash
+claude plugin marketplace add github:ayastaga/claude-markitdown
+```
+
+**3. Install the plugin:**
+
+```bash
+claude plugin install claude-markitdown@claude-markitdown
 ```
 
 Restart Claude Code.
 
-## How it works
+## How It Works
 
-The plugin registers a `UserPromptSubmit` hook. On every message, the hook scans for `/parse <path>` patterns before Claude sees the prompt. Matching files are converted via `markitdown` and injected as `additionalContext` — Claude receives clean markdown, never the raw binary.
+1. Plugin registers a `UserPromptSubmit` hook.
+2. On every message, the hook scans for `/parse <path>` patterns before Claude sees the prompt.
+3. Matching files are converted via `markitdown` and injected as `additionalContext` — Claude receives clean markdown, never the raw binary.
 
 A brief system message confirms conversion: `Parsed: report.pdf → markdown (4,231 chars). Injected into context.`
 
