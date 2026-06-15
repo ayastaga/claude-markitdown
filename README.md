@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="https://em-content.zobj.net/source/apple/391/page-facing-up_1f4c4.png" width="120" />
-</p>
-
 <h1 align="center">parsemd</h1>
 
 <p align="center">
