@@ -119,7 +119,7 @@ Commands are namespaced: `/parsemd:parsemd`, `/parsemd:parsemd-save`, `/parsemd:
 
 ```bash
 pip install 'markitdown[all]'
-claude plugin marketplace add github:ayastaga/parsemd
+claude plugin marketplace add ayastaga/parsemd
 claude plugin install parsemd@parsemd
 ```
 
