@@ -25,48 +25,68 @@
 
 A [Claude Code](https://claude.ai/code) plugin that converts binary documents (DOCX, PDF, PPTX, XLSX, images, audio) into markdown and injects the content into Claude's context on demand.
 
-Claude Code's built-in `@` file referencing handles text files natively. This plugin fills the gap for binary formats that `@` cannot read.
+Claude Code's built-in `@` file referencing handles plain text natively. This plugin fills the gap for binary formats that `@` cannot read.
 
 Powered by Microsoft's [markitdown](https://github.com/microsoft/markitdown).
 
 ## Usage
 
-> **Note:** Command syntax depends on install method. Plugin install uses `/parsemd:parsemd`, standalone install uses bare `/parsemd`. See [Install](#install).
+> **Note:** Command syntax depends on install method. Plugin install uses `/parsemd:parsemd`, standalone install uses bare `/parsemd`. Examples below use the standalone form for brevity.
 
-Convert and inject into context:
+### File path syntax
 
-```
-/parsemd:parsemd ~/docs/report.pdf
-```
-
-Save `.md` alongside the source file:
+All three forms are equivalent:
 
 ```
-/parsemd:parsemd ~/docs/report.docx --output
+/parsemd ~/docs/report.pdf
+/parsemd @~/docs/report.pdf
+/parsemd @"~/docs/report.pdf"
 ```
 
-Save `.md` in the current working directory of your Claude session:
+Use quoted form for paths with spaces:
 
 ```
-/parsemd:parsemd ~/docs/report.docx --output-save
+/parsemd @"~/My Documents/Q4 Report.pdf"
 ```
 
-Save `.md` to a custom path:
+Absolute path:
 
 ```
-/parsemd:parsemd ~/docs/report.docx -o ~/notes/report-notes.md
+/parsemd /tmp/export.docx
+/parsemd @"/tmp/export.docx"
 ```
 
-Multiple files in one message:
+### Inject into context (no file saved)
 
 ```
-/parsemd:parsemd ~/docs/a.pdf compare with /parsemd:parsemd ~/docs/b.pdf
+/parsemd ~/docs/report.pdf
 ```
 
-Show all commands:
+### Save `.md` to current working directory
 
 ```
-/parsemd:parsemd-help
+/parsemd-save ~/docs/report.pdf
+```
+
+### Save `.md` to custom path
+
+```
+/parsemd ~/docs/report.pdf --output ~/notes/report.md
+/parsemd @"~/docs/report.pdf" --output @"~/notes/report.md"
+```
+
+### Multiple files in one message
+
+```
+/parsemd ~/docs/a.pdf compare with /parsemd ~/docs/b.docx
+```
+
+Both converted in parallel and injected. Repeated files within a session are served from cache — no re-conversion.
+
+### Show all commands
+
+```
+/parsemd-help
 ```
 
 ### What does NOT trigger conversion
@@ -79,14 +99,15 @@ No `/parsemd` trigger → no conversion. Claude processes the message as-is.
 
 ## Supported Formats
 
-| Category  | Extensions                                            |
-| --------- | ----------------------------------------------------- |
-| Documents | `.docx` `.pdf` `.pptx` `.ppt` `.xlsx` `.xls` `.epub` |
-| Archives  | `.zip`                                                |
-| Images    | `.jpg` `.jpeg` `.png` `.gif` `.bmp` `.tiff`           |
-| Audio     | `.wav` `.mp3` `.m4a`                                  |
+| Category   | Extensions                                            |
+| ---------- | ----------------------------------------------------- |
+| Documents  | `.docx` `.pdf` `.pptx` `.ppt` `.xlsx` `.xls` `.epub` |
+| Archives   | `.zip`                                                |
+| Images     | `.jpg` `.jpeg` `.png` `.gif` `.bmp` `.tiff`           |
+| Audio      | `.wav` `.mp3` `.m4a`                                  |
+| Web / Data | `.html` `.csv` `.json`                                |
 
-Text files (`.txt`, `.md`, `.py`, `.csv`, etc.) are intentionally excluded — Claude Code's `@` already handles those natively.
+Plain text (`.txt`, `.md`, `.py`, etc.) — use Claude Code's `@` directly, no plugin needed.
 
 ## Install
 
@@ -94,7 +115,7 @@ Requires Node.js, Python 3 with pip, and the `claude` CLI.
 
 ### Plugin install (recommended)
 
-Commands are namespaced: `/parsemd:parsemd`, `/parsemd:parsemd-help`.
+Commands are namespaced: `/parsemd:parsemd`, `/parsemd:parsemd-save`, `/parsemd:parsemd-help`.
 
 ```bash
 pip install 'markitdown[all]'
@@ -112,13 +133,21 @@ Restart Claude Code after installing.
 
 ### Standalone install (bare `/parsemd`)
 
-Adds the hook and command directly to your user config. Commands have no namespace prefix.
+Adds the hook and command directly to your user config. No namespace prefix.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/install.sh | bash -s -- --standalone
 ```
 
-Or manually:
+Or clone the repo and run locally (hook is symlinked — updates apply without reinstalling):
+
+```bash
+git clone https://github.com/ayastaga/parsemd.git
+cd parsemd
+./install.sh --standalone
+```
+
+#### Manual standalone setup
 
 **1. Install markitdown:**
 
@@ -130,7 +159,7 @@ pip install 'markitdown[all]'
 
 ```bash
 mkdir -p ~/.claude/hooks
-curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/hooks/markitdown-hook.js \
+curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/hooks/parsemd-hook.js \
   -o ~/.claude/hooks/parsemd-hook.js
 ```
 
@@ -138,8 +167,8 @@ curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/hooks/markitd
 
 ```bash
 mkdir -p ~/.claude/commands
-curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/commands/parsemd.md \
-  -o ~/.claude/commands/parsemd.md
+printf -- '---\ndescription: Parse binary documents into markdown context\n---\n\n/parse $ARGUMENTS\n' \
+  > ~/.claude/commands/parsemd.md
 ```
 
 **4. Register hook in `~/.claude/settings.json`:**
@@ -149,6 +178,7 @@ curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/commands/pars
   "hooks": {
     "UserPromptSubmit": [
       {
+        "matcher": "/parse",
         "hooks": [
           {
             "type": "command",
@@ -162,13 +192,14 @@ curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/commands/pars
 }
 ```
 
-Replace `/Users/YOU` with your actual home directory path. Restart Claude Code.
+Replace `/Users/YOU` with your actual home directory. Restart Claude Code.
 
 ## How It Works
 
-1. Plugin registers a `UserPromptSubmit` hook.
-2. On every message, the hook scans for `/parse <path>` patterns before Claude sees the prompt.
-3. Matching files are converted via `markitdown` and injected as `additionalContext` — Claude receives clean markdown, never the raw binary.
+1. Plugin registers a `UserPromptSubmit` hook with matcher `/parse` — fires only on messages containing that trigger.
+2. Hook scans the prompt for `/parse <path>` patterns before Claude sees the message.
+3. Matching files are converted via `markitdown` (in parallel for multiple files) and injected as `additionalContext` — Claude receives clean markdown, never the raw binary.
+4. Repeated files are served from a per-session cache keyed by file path + mtime.
 
 A brief system message confirms conversion:
 
