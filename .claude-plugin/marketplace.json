@@ -3,8 +3,8 @@
   "name": "parsemd",
   "description": "Parse binary docs (DOCX, PDF, PPTX, XLSX, images, audio) into markdown and inject as context for Claude Code.",
   "owner": {
-    "name": "agastya-intercept",
-    "url": "https://github.com/agastya-intercept"
+    "name": "ayastaga",
+    "url": "https://github.com/ayastaga"
   },
   "plugins": [
     {
