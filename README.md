@@ -2,16 +2,16 @@
   <img src="https://em-content.zobj.net/source/apple/391/page-facing-up_1f4c4.png" width="120" />
 </p>
 
-<h1 align="center">claude-markitdown</h1>
+<h1 align="center">parsemd</h1>
 
 <p align="center">
-  <strong>parse binary docs into context with /parse</strong>
+  <strong>parse binary docs into Claude context with /parsemd</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/ayastaga/claude-markitdown/stargazers"><img src="https://img.shields.io/github/stars/ayastaga/claude-markitdown?style=flat&color=yellow" alt="Stars"></a>
-  <a href="https://github.com/ayastaga/claude-markitdown/commits/main"><img src="https://img.shields.io/github/last-commit/ayastaga/claude-markitdown?style=flat" alt="Last Commit"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/ayastaga/claude-markitdown?style=flat" alt="License"></a>
+  <a href="https://github.com/ayastaga/parsemd/stargazers"><img src="https://img.shields.io/github/stars/ayastaga/parsemd?style=flat&color=yellow" alt="Stars"></a>
+  <a href="https://github.com/ayastaga/parsemd/commits/main"><img src="https://img.shields.io/github/last-commit/ayastaga/parsemd?style=flat" alt="Last Commit"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ayastaga/parsemd?style=flat" alt="License"></a>
 </p>
 
 <p align="center">
@@ -31,29 +31,43 @@ Powered by Microsoft's [markitdown](https://github.com/microsoft/markitdown).
 
 ## Usage
 
-```
-/parse ~/docs/report.pdf
-```
+> **Note:** Command syntax depends on install method. Plugin install uses `/parsemd:parsemd`, standalone install uses bare `/parsemd`. See [Install](#install).
 
-→ Converts and injects into context. Claude can then answer questions about it.
+Convert and inject into context:
 
 ```
-/parse ~/docs/report.docx --output
+/parsemd:parsemd ~/docs/report.pdf
 ```
 
-→ Converts, injects into context, and saves `report.md` alongside the source file.
+Save `.md` alongside the source file:
 
 ```
-/parse ~/docs/report.docx -o ~/notes/report-notes.md
+/parsemd:parsemd ~/docs/report.docx --output
 ```
 
-→ Converts, injects into context, and saves to a custom path.
+Save `.md` in the current working directory of your Claude session:
 
 ```
-/parse ~/docs/a.pdf compare with /parse ~/docs/b.pdf
+/parsemd:parsemd ~/docs/report.docx --output-save
 ```
 
-→ Multiple files in one message — both converted and injected.
+Save `.md` to a custom path:
+
+```
+/parsemd:parsemd ~/docs/report.docx -o ~/notes/report-notes.md
+```
+
+Multiple files in one message:
+
+```
+/parsemd:parsemd ~/docs/a.pdf compare with /parsemd:parsemd ~/docs/b.pdf
+```
+
+Show all commands:
+
+```
+/parsemd:parsemd-help
+```
 
 ### What does NOT trigger conversion
 
@@ -61,7 +75,7 @@ Powered by Microsoft's [markitdown](https://github.com/microsoft/markitdown).
 use template.docx as reference format
 ```
 
-No `/parse` trigger → no conversion. Claude processes the message as-is.
+No `/parsemd` trigger → no conversion. Claude processes the message as-is.
 
 ## Supported Formats
 
@@ -76,17 +90,35 @@ Text files (`.txt`, `.md`, `.py`, `.csv`, etc.) are intentionally excluded — C
 
 ## Install
 
-One line.
+Requires Node.js, Python 3 with pip, and the `claude` CLI.
+
+### Plugin install (recommended)
+
+Commands are namespaced: `/parsemd:parsemd`, `/parsemd:parsemd-help`.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ayastaga/claude-markitdown/main/install.sh | bash
+pip install 'markitdown[all]'
+claude plugin marketplace add github:ayastaga/parsemd
+claude plugin install parsemd@parsemd
 ```
 
-Needs Node.js, Python 3 with pip, and the `claude` CLI. Restart Claude Code after installing.
+Or one line:
 
-**Trigger:** type `/parse <path>` in any message.
+```bash
+curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/install.sh | bash
+```
 
-### Manual installation
+Restart Claude Code after installing.
+
+### Standalone install (bare `/parsemd`)
+
+Adds the hook and command directly to your user config. Commands have no namespace prefix.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/install.sh | bash -s -- --standalone
+```
+
+Or manually:
 
 **1. Install markitdown:**
 
@@ -94,19 +126,43 @@ Needs Node.js, Python 3 with pip, and the `claude` CLI. Restart Claude Code afte
 pip install 'markitdown[all]'
 ```
 
-**2. Register the marketplace:**
+**2. Download hook script:**
 
 ```bash
-claude plugin marketplace add github:ayastaga/claude-markitdown
+mkdir -p ~/.claude/hooks
+curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/hooks/markitdown-hook.js \
+  -o ~/.claude/hooks/parsemd-hook.js
 ```
 
-**3. Install the plugin:**
+**3. Add `/parsemd` command:**
 
 ```bash
-claude plugin install claude-markitdown@claude-markitdown
+mkdir -p ~/.claude/commands
+curl -fsSL https://raw.githubusercontent.com/ayastaga/parsemd/main/commands/parsemd.md \
+  -o ~/.claude/commands/parsemd.md
 ```
 
-Restart Claude Code.
+**4. Register hook in `~/.claude/settings.json`:**
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"/Users/YOU/.claude/hooks/parsemd-hook.js\"",
+            "timeout": 35
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Replace `/Users/YOU` with your actual home directory path. Restart Claude Code.
 
 ## How It Works
 
@@ -114,7 +170,11 @@ Restart Claude Code.
 2. On every message, the hook scans for `/parse <path>` patterns before Claude sees the prompt.
 3. Matching files are converted via `markitdown` and injected as `additionalContext` — Claude receives clean markdown, never the raw binary.
 
-A brief system message confirms conversion: `Parsed: report.pdf → markdown (4,231 chars). Injected into context.`
+A brief system message confirms conversion:
+
+```
+Parsed: report.pdf → markdown (4,231 chars). Injected into context.
+```
 
 ## License
 
