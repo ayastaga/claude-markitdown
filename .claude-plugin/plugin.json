@@ -1,0 +1,26 @@
+{
+  "name": "parsemd",
+  "description": "Parse binary docs (DOCX, PDF, PPTX, XLSX, images, audio) into markdown and inject as context via /parsemd. Powered by Microsoft's markitdown.",
+  "version": "1.0.0",
+  "author": {
+    "name": "agastya-intercept",
+    "url": "https://github.com/agastya-intercept"
+  },
+  "homepage": "https://github.com/ayastaga/parsemd",
+  "repository": "https://github.com/ayastaga/parsemd",
+  "license": "MIT",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "/parse",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/run.sh\"",
+            "timeout": 35
+          }
+        ]
+      }
+    ]
+  }
+}
