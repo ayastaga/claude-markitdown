@@ -15,6 +15,7 @@
 </p>
 
 <p align="center">
+  <a href="#why-parsemd">Why parsemd</a> •
   <a href="#what-it-does">What It Does</a> •
   <a href="#how-it-works">How It Works</a> •
   <a href="#install">Install</a> •
@@ -25,17 +26,33 @@
 
 ---
 
+## Why parsemd
+
+Claude can read more file types every month. GUI Claude lets you drag and drop PDFs. So why does parsemd exist?
+
+**File conversion is commodity. Context engineering is not.**
+
+Reading a file is step one. The hard problems come after: How do you feed a 200-page PDF to an agent without blowing its context window? How do you reference just pages 12–15 of a contract? How do you keep a sensitive document from leaving your machine? How do you avoid re-converting the same 50-page report ten times in one session?
+
+parsemd solves these problems. It's the layer between your documents and Claude's context — handling not just *what* goes in, but *how much*, *which parts*, and *how safely*.
+
+<table>
+<tr><td><strong>Slice</strong></td><td>Extract specific pages, sections, headings, or sheets — inject only what matters, not the whole document</td></tr>
+<tr><td><strong>Budget</strong></td><td>Cap injected content at a token limit (<code>--budget 20k</code>) — critical for agentic workflows where every token counts</td></tr>
+<tr><td><strong>Privacy</strong></td><td>Files never leave your machine. Conversion runs in an OS-level sandbox with network denied — no uploads, no cloud</td></tr>
+<tr><td><strong>Cache</strong></td><td>Session and project-level caching (SHA256-keyed). Reference the same document 10 times, convert it once</td></tr>
+<tr><td><strong>Programmable</strong></td><td>Runs as a hook — agents and skills can invoke parsemd without human interaction. No GUI, no drag-and-drop required</td></tr>
+</table>
+
 ## What It Does
 
-Claude Code reads plain-text files natively via `@`, and recent versions can also open simple PDFs. **parsemd handles the rest** — DOCX, PPTX, XLSX, EPUB, archives, audio, and images — and turns them into markdown Claude can reason about. It wraps the conversion in an OS-level sandbox, applies categorized error handling, enforces a total context budget, and routes images through Claude's native vision.
+parsemd converts binary documents (DOCX, PPTX, XLSX, PDF, EPUB, images, audio, archives) into structured markdown with page/slide/sheet anchors, then injects the result into Claude's context — sliced, budgeted, cached, and sandboxed.
 
 ```
 /parsemd ~/docs/report.docx
+/parsemd report.pdf --pages 12-15 --budget 10k
+/parsemd slides.pptx --section "Q4 Revenue"
 ```
-
-Claude can now read, summarize, reference, and reason about the document as if you'd pasted it in.
-
-**Why it exists.** The set of formats Claude can ingest natively grows over time, but the surrounding workflow — keeping conversions safe, cacheable, and within token budget — does not get solved by adding more native readers. parsemd is the layer between your files and your Claude context.
 
 Powered by Microsoft's [markitdown](https://github.com/microsoft/markitdown).
 
@@ -361,12 +378,12 @@ Plain text files (`.txt`, `.md`, `.py`, etc.) don't need this plugin — use Cla
 
 ## Roadmap
 
-parsemd is evolving from a file-conversion utility into a document context-engineering layer. Each phase is additive — no existing commands are removed or renamed.
+parsemd's trajectory: from file converter → context engineering layer. Each phase is additive — no existing commands are removed or renamed.
 
 - **1.1 (done)** — sandboxed parser, categorized errors, 5-min timeout, on-disk session cache with 24h GC, tightened matcher (skips code blocks), `--no-cache` flag, total-context budget, image routing through in-session Claude.
 - **1.2 (done)** — `[parsemd]` provenance header on every injection, page/slide/sheet anchors (`<!-- page:N -->` etc.), HTTP(S) URL input, opt-in project-local cache at `<cwd>/.parsemd/cache/` (SHA256-keyed, auto-`.gitignore`), first-heading preview in summary line, engine version detect, engine seam (`markitdown` default).
 - **1.3 (current)** — slicing (`--pages`, `--section`, `--heading`, `--sheet`, `--head`, `--tail`), token budgeting (`--budget 20k`), `/parsemd-summarize` (Claude compacts maximally), `/parsemd-diff` (Claude compares two docs with citations).
-- **1.4 (planned)** — folder ingestion (`/parsemd-folder`), knowledge packs (`/parsemd-pack`), incremental updates, semantic extraction via in-session Claude (`/parsemd-relevant`), audio routing through in-session Claude.
+- **1.4 (planned)** — folder ingestion (`/parsemd-folder`), knowledge packs (`/parsemd-pack`), incremental updates, semantic extraction via in-session Claude (`/parsemd-relevant`), audio routing through in-session Claude, hybrid pixel fallback for visually complex pages (charts, scanned PDFs).
 
 ---
 
